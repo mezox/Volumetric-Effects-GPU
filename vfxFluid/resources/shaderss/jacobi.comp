@@ -1,0 +1,58 @@
+/*	Brief:			Pressure solver compute shader
+ *	Description:	Solves pressure term of Navier-Stokes equation using Jacobi method
+ */
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// inputs
+layout (binding = 0) uniform sampler3D divergence;
+layout (binding = 1) uniform sampler3D obstacle;
+layout (binding = 2) uniform sampler3D pressure;
+
+// outputs
+layout (binding = 0, r16f) uniform image3D pressureImage;
+
+ivec3 clampImage (ivec3 position)
+{
+	ivec3 result;
+	result.x = clamp(position.x, 0, int(gl_NumWorkGroups.x * gl_WorkGroupSize.x) -1);
+	result.y = clamp(position.y, 0, int(gl_NumWorkGroups.y * gl_WorkGroupSize.y) -1);
+	result.z = clamp(position.z, 0, int(gl_NumWorkGroups.z * gl_WorkGroupSize.z) -1);
+	return result;
+}
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	
+	float pressureForward	= texelFetch(pressure, clampImage(position +ivec3(0, 0, 1)), 0).x;
+	float pressureBackward	= texelFetch(pressure, clampImage(position +ivec3(0, 0, -1)), 0).x;
+	float pressureRight		= texelFetch(pressure, clampImage(position +ivec3(1, 0, 0)), 0).x;
+	float pressureLeft		= texelFetch(pressure, clampImage(position +ivec3(-1, 0, 0)), 0).x;
+	float pressureUp		= texelFetch(pressure, clampImage(position +ivec3(0, 1, 0)), 0).x;
+	float pressureDown		= texelFetch(pressure, clampImage(position +ivec3(0, -1, 0)), 0).x;
+	float pressureCenter	= texelFetch(pressure, position, 0).x;
+	
+	float obstacleForward	= texelFetch(obstacle, clampImage(position +ivec3(0, 0, 1)), 0).x;
+	float obstacleBackward	= texelFetch(obstacle, clampImage(position +ivec3(0, 0, -1)), 0).x;
+	float obstacleRight		= texelFetch(obstacle, clampImage(position +ivec3(1, 0, 0)), 0).x;
+	float obstacleLeft		= texelFetch(obstacle, clampImage(position +ivec3(-1, 0, 0)), 0).x;
+	float obstacleUp		= texelFetch(obstacle, clampImage(position +ivec3(0, 1, 0)), 0).x;
+	float obstacleDown		= texelFetch(obstacle, clampImage(position +ivec3(0, -1, 0)), 0).x;
+	
+	if (obstacleForward > 0)	pressureForward = pressureCenter;
+	if (obstacleBackward > 0)	pressureBackward = pressureCenter;
+	if (obstacleRight > 0)		pressureRight = pressureCenter;
+	if (obstacleLeft > 0)		pressureLeft = pressureCenter;
+	if (obstacleUp > 0)			pressureUp = pressureCenter;
+	if (obstacleDown > 0)		pressureDown = pressureCenter;
+	
+	float div = texelFetch(divergence, position, 0).r;
+	float p = (	pressureForward + pressureBackward + 
+				pressureRight + pressureLeft + 
+				pressureUp + pressureDown - div) / 6.0;
+
+	imageStore(pressureImage, position, vec4(p));
+}

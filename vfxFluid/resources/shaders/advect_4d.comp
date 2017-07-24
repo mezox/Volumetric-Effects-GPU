@@ -1,0 +1,45 @@
+/*
+	Brief:			4 dimensional quantity advection compute shader
+	Description:	Advects given 4D quantity, using velocity vector field,
+					by computing backtracked coordinate and sampling quantity
+					from computed position.
+*/
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// inputs
+layout (binding = 0) uniform sampler3D velocity;
+layout (binding = 1) uniform sampler3D obstacle;
+layout (binding = 2) uniform sampler3D quantity;
+
+// outputs
+layout (binding = 0, rgba16f) uniform image3D quantityImage;
+
+// uniform properties
+uniform float deltaTime;
+uniform float dissipation;
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	vec4 obstacleSample = texelFetch(obstacle, position, 0);
+	
+	vec4 outputValue = vec4(0);
+	if (!(obstacleSample.r > 0))
+	{
+		// Sample velocity at given position and compute position by backtracking in time
+		vec3 velocitySample = texelFetch(velocity, position, 0).xyz;
+		vec3 backTrackedPosition = vec3(position) - velocitySample * deltaTime;
+		vec3 backTrackedCoordinate = (backTrackedPosition + 0.5) / vec3(gl_NumWorkGroups * gl_WorkGroupSize);
+		
+		// Sample quantity value
+		vec4 quantitySample = texture(quantity, backTrackedCoordinate);
+		
+		// Apply dissipation factor
+		outputValue = quantitySample * (1 - dissipation);
+	}
+	
+	imageStore(quantityImage, position, outputValue);
+}

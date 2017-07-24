@@ -1,0 +1,139 @@
+{
+	"shaders":
+	{
+		"advect_1d.comp": true,
+		"advect_4d.comp": true,
+		"advect_mc_1d.comp": true,
+		"advect_mc_4d.comp": true,
+		"box.comp": true,
+		"buoyancy_4d.comp": true,
+		"clear_1d.comp": true,
+		"clear_4d.comp": true,
+		"confinement_4d.comp": true,
+		"divergence_1d.comp": true,
+		"boundary.comp": true,
+		"sphere.comp": true,
+		"gaussian_blur_1d.comp": true,
+		"gaussian_blur_4d.comp": true,
+		"injection_splat_1d.comp": true,
+		"injection_splat_4d.comp": true,
+		"injection_splat_v.comp": true,
+		"injection_splat_v_linear.comp": true,
+		"jacobi_1d.comp": true,
+		"projection_4d.comp": true,
+		"raytracing.frag": true,
+		"quad.vert": true,
+		"shadow_1d.comp": true,
+		"vorticity_4d.comp": true
+	},
+	"pipelines":
+	{
+		"advect1D": 
+		{
+			"compute": "advect_1d.comp",
+			"enabled": true
+		}, 
+		"advect4D":
+		{
+			"compute": "advect_4d.comp",
+			"enabled": true	
+		},
+		"advectMC41D":
+		{
+			"compute": "advect_mc_1d.comp",
+			"enabled": true
+		},
+		"advectMC4D":
+		{
+			"compute": "advect_mc_4d.comp",
+			"enabled": true
+		},
+		"ObstacleBoxFill":
+		{
+			"compute": "box.comp",
+			"enabled": true
+		},
+		"buoyancy":
+		{
+			"compute": "buoyancy.comp",
+			"enabled": true
+		},
+		"clear":
+		{
+			"compute": "clear.comp",
+			"enabled": true
+		},		
+		"confinement":
+		{
+			"compute": "confinement.comp",
+			"enabled": true
+		},
+		"divergence":
+		{
+			"compute": "divergence.comp",
+			"enabled": true
+		},
+		"NoObstacleFill":
+		{
+			"compute": "boundary.comp",
+			"enabled": true
+		},
+		"ObstacleSphereFill":
+		{
+			"compute": "sphere.comp",
+			"enabled": true
+		},
+		"blur":
+		{
+			"compute": "blur.comp",
+			"enabled": true
+		},
+		"injection1D":
+		{
+			"compute": "injection_1d.comp",
+			"enabled": true
+		},
+		"injection4D":
+		{
+			"compute": "injection_4d.comp",
+			"enabled": true
+		},
+		"injectionVelocity":
+		{
+			"compute": "injectionVelocity.comp",
+			"enabled": true
+		},
+		"jacobi":
+		{
+			"compute": "jacobi.comp",
+			"enabled": true
+		},
+		"projection":
+		{
+			"compute": "projection.comp",
+			"enabled": true
+		},
+		"shadows":
+		{
+			"compute": "shadows.comp",
+			"enabled": true
+		},
+		"vorticity":
+		{
+			"compute": "vorticity.comp",
+			"enabled": true
+		},
+		"raytracing":
+		{ 
+			"vertex": "quad.vert",
+			"fragment": "raytracing.frag",
+			"enabled": true
+		},
+		"sponza":
+		{ 
+			"vertex": "simple.vert",
+			"fragment": "simple.frag",
+			"enabled": true
+		}		
+	}
+}

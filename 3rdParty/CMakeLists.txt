@@ -1,0 +1,10 @@
+add_subdirectory(glm)
+add_subdirectory(glew/build/cmake)
+add_subdirectory(glfw)
+add_subdirectory(assimp)
+
+set_target_properties(glm_dummy PROPERTIES FOLDER External)
+set_target_properties(glew PROPERTIES FOLDER External)
+set_target_properties(glew_s PROPERTIES FOLDER External)
+set_target_properties(glfw PROPERTIES FOLDER External)
+set_target_properties(assimp PROPERTIES FOLDER External)

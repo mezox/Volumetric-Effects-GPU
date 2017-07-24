@@ -1,0 +1,18 @@
+/*	
+	Brief:			Clear image shader
+	Description:	Fills provided image (in half float precision,
+					with 4 channels) with predefined value in each channel
+*/
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (binding = 0, rgba16f) uniform writeonly image3D image;
+
+void main()
+{
+	ivec3 pos = ivec3(gl_GlobalInvocationID);		// Texel position;
+	vec4 clearColor = vec4(0.0, 0.0, 0.0, 0.0);		// Actual clear color (could be used as uniform variable,
+													// but not needed for this application)
+	imageStore(image, pos, clearColor);
+}

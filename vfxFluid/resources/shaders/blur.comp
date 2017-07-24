@@ -1,0 +1,48 @@
+/*	Brief:			Gaussian blur compute shader
+ *	Description:	1D gaussian filter
+ */
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// inputs
+layout (binding = 0) uniform sampler3D source;
+
+// outputs
+layout (binding = 0, rgba16f) uniform image3D target;
+
+
+layout (binding = 0) buffer blurOffsets
+{
+	ivec3 offsets[];
+};
+
+layout (binding = 1) buffer blurWeights
+{
+	float weights[];
+};
+
+uniform uint kernelSize;
+
+ivec3 clampImage (ivec3 position)
+{
+	ivec3 result;
+	result.x = clamp(position.x, 0, int(gl_NumWorkGroups.x * gl_WorkGroupSize.x) -1);
+	result.y = clamp(position.y, 0, int(gl_NumWorkGroups.y * gl_WorkGroupSize.y) -1);
+	result.z = clamp(position.z, 0, int(gl_NumWorkGroups.z * gl_WorkGroupSize.z) -1);
+	return result;
+}
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+
+	vec4 value = vec4(0);
+	for (int i = 0; i < kernelSize; ++i)
+	{
+		value += texelFetch(source, clampImage(position + offsets[i]), 0) * weights[i];
+	}
+
+	imageStore(target, position, value);
+}

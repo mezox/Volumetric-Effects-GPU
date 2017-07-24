@@ -1,0 +1,55 @@
+/*	Brief:			Divergence compute shader
+ *	Description:	Computes velocity divergence
+ */
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// inputs
+layout (binding = 0) uniform sampler3D velocity;
+layout (binding = 1) uniform sampler3D obstacle;
+
+// outputs
+layout (binding = 0, r16f) uniform image3D divergenceImage;
+
+ivec3 clampImage (ivec3 position)
+{
+	ivec3 result;
+	result.x = clamp(position.x, 0, int(gl_NumWorkGroups.x * gl_WorkGroupSize.x) -1);
+	result.y = clamp(position.y, 0, int(gl_NumWorkGroups.y * gl_WorkGroupSize.y) -1);
+	result.z = clamp(position.z, 0, int(gl_NumWorkGroups.z * gl_WorkGroupSize.z) -1);
+	return result;
+}
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	
+	vec4 velocityForward =	texelFetch(velocity, clampImage(position +ivec3(0, 0, 1)), 0);
+	vec4 velocityBackward = texelFetch(velocity, clampImage(position +ivec3(0, 0, -1)), 0);
+	vec4 velocityRight =	texelFetch(velocity, clampImage(position +ivec3(1, 0, 0)), 0);
+	vec4 velocityLeft =		texelFetch(velocity, clampImage(position +ivec3(-1, 0, 0)), 0);
+	vec4 velocityUp =		texelFetch(velocity, clampImage(position +ivec3(0, 1, 0)), 0);
+	vec4 velocityDown =		texelFetch(velocity, clampImage(position +ivec3(0, -1, 0)), 0);
+	
+	vec4 obstacleForward =	texelFetch(obstacle, clampImage(position +ivec3(0, 0, 1)), 0);
+	vec4 obstacleBackward =	texelFetch(obstacle, clampImage(position +ivec3(0, 0, -1)), 0);
+	vec4 obstacleRight =	texelFetch(obstacle, clampImage(position +ivec3(1, 0, 0)), 0);
+	vec4 obstacleLeft =		texelFetch(obstacle, clampImage(position +ivec3(-1, 0, 0)), 0);
+	vec4 obstacleUp =		texelFetch(obstacle, clampImage(position +ivec3(0, 1, 0)), 0);
+	vec4 obstacleDown =		texelFetch(obstacle, clampImage(position +ivec3(0, -1, 0)), 0);
+	
+	if (obstacleForward.x > 0) velocityForward.xyz = vec3(0);
+	if (obstacleBackward.x > 0) velocityBackward.xyz = vec3(0);
+	if (obstacleRight.x > 0) velocityRight.xyz = vec3(0);
+	if (obstacleLeft.x > 0) velocityLeft.xyz = vec3(0);
+	if (obstacleUp.x > 0) velocityUp.xyz = vec3(0);
+	if (obstacleDown.x > 0) velocityDown.xyz = vec3(0);
+	
+	float divergence = 0.5 * (	velocityForward.z - velocityBackward.z +
+								velocityRight.x - velocityLeft.x + 
+								velocityUp.y - velocityDown.y);
+
+	imageStore(divergenceImage, position, vec4(divergence));
+}

@@ -1,0 +1,35 @@
+/*	Brief:			Buoyant force compute shader
+ *	Description:	Applies buoyant force using fluid temperature & density
+ */
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// inputs
+layout (binding = 0) uniform sampler3D velocity;
+layout (binding = 1) uniform sampler3D temperature;
+layout (binding = 2) uniform sampler3D density;
+
+// outputs
+layout (binding = 0, rgba16f) uniform image3D velocityImage;
+
+uniform float ambientTemperature;
+uniform float deltaTime;
+uniform float strength;
+uniform vec3 direction;
+uniform float weight;
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	
+	vec4 u = texelFetch(velocity, position, 0);			// Sample velocity
+	float T = texelFetch(temperature, position, 0).x;	// Sample temperature
+	vec4 d = texelFetch(density, position, 0);			// Sample denisty
+	
+	float density = d.x + d.y + d.z + d.w;
+	u += deltaTime * ((T - ambientTemperature) * strength - density * weight) * vec4(direction, 0);
+
+	imageStore(velocityImage, position, u);
+}

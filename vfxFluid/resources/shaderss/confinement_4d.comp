@@ -1,0 +1,39 @@
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (binding = 0) uniform sampler3D t_velocity;
+layout (binding = 1) uniform sampler3D t_vorticity;
+layout (binding = 0, rgba16f) uniform image3D i_velocity_target;
+
+uniform float u_time_step;
+uniform float u_vorticity_strength;
+
+ivec3 clamp_i (ivec3 i_in) {
+	ivec3 res;
+	res.x = clamp(i_in.x, 0, int(gl_NumWorkGroups.x * gl_WorkGroupSize.x) -1);
+	res.y = clamp(i_in.y, 0, int(gl_NumWorkGroups.y * gl_WorkGroupSize.y) -1);
+	res.z = clamp(i_in.z, 0, int(gl_NumWorkGroups.z * gl_WorkGroupSize.z) -1);
+	return res;
+}
+
+void main() {
+	ivec3 pos = ivec3(gl_GlobalInvocationID);
+	
+	vec3 v_r = texelFetch(t_vorticity, clamp_i(pos +ivec3(1, 0, 0)), 0).xyz;
+	vec3 v_l = texelFetch(t_vorticity, clamp_i(pos +ivec3(-1, 0, 0)), 0).xyz;
+	vec3 v_u = texelFetch(t_vorticity, clamp_i(pos +ivec3(0, 1, 0)), 0).xyz;
+	vec3 v_d = texelFetch(t_vorticity, clamp_i(pos +ivec3(0, -1, 0)), 0).xyz;
+	vec3 v_f = texelFetch(t_vorticity, clamp_i(pos +ivec3(0, 0, 1)), 0).xyz;
+	vec3 v_b = texelFetch(t_vorticity, clamp_i(pos +ivec3(0, 0, -1)), 0).xyz;
+	
+	vec3 vor = texelFetch(t_vorticity, pos, 0).xyz;
+	vec3 eta = 0.5 * vec3(length(v_r) - length(v_l), length(v_u) - length(v_d), length(v_f) - length(v_b));
+	eta = normalize(eta + vec3(0.001));
+	
+	vec3 dv = u_time_step * u_vorticity_strength * vec3(eta.y * vor.z - eta.z * vor.y, eta.z * vor.x - eta.x * vor.z, eta.x * vor.y - eta.y * vor.x);
+	
+	vec3 vel = texelFetch(t_velocity, pos, 0).xyz;
+	vel += dv;
+	imageStore(i_velocity_target, pos, vec4(vel, 0));
+}
+

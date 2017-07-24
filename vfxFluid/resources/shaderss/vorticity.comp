@@ -1,0 +1,44 @@
+/* Brief:			Vorticity confinement compute shader
+ * Description:		Applies vorticity confinement to velocity field
+ */
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// inputs
+layout (binding = 0) uniform sampler3D velocity;
+
+// outputs
+layout (binding = 0, rgba16f) uniform image3D vorticityImage;
+
+ivec3 clampImage (ivec3 position)
+{
+	ivec3 result;
+	result.x = clamp(position.x, 0, int(gl_NumWorkGroups.x * gl_WorkGroupSize.x) -1);
+	result.y = clamp(position.y, 0, int(gl_NumWorkGroups.y * gl_WorkGroupSize.y) -1);
+	result.z = clamp(position.z, 0, int(gl_NumWorkGroups.z * gl_WorkGroupSize.z) -1);
+	return result;
+}
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	
+	// Sample velocity neighboours
+	vec4 velocityRight = texelFetch(velocity, clampImage(position +ivec3(1, 0, 0)),	0);
+	vec4 velocityLeft = texelFetch(velocity, clampImage(position +ivec3(-1, 0, 0)),	0);
+	vec4 velocityUp = texelFetch(velocity, clampImage(position +ivec3(0, 1, 0)),	0);
+	vec4 velocityDown = texelFetch(velocity, clampImage(position +ivec3(0, -1, 0)),	0);
+	vec4 velocityForward = texelFetch(velocity, clampImage(position +ivec3(0, 0, 1)),	0);
+	vec4 velocityBackward = texelFetch(velocity, clampImage(position +ivec3(0, 0, -1)),	0);
+	
+	// Compute vorticity
+	vec3 vorticity = 0.5 * vec3((velocityUp.z		- velocityDown.z)		- (velocityForward.y	- velocityBackward.y), 
+						  		(velocityForward.x	- velocityBackward.x)	- (velocityRight.z		- velocityLeft.z), 
+						  		(velocityRight.y	- velocityLeft.y)		- (velocityUp.x			- velocityDown.x));
+
+	float omega = length(vorticity);
+						  
+	imageStore(vorticityImage, position, vec4(vorticity, omega));
+}

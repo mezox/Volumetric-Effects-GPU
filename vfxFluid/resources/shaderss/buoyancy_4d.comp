@@ -1,0 +1,25 @@
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (binding = 0) uniform sampler3D t_velocity;
+layout (binding = 1) uniform sampler3D t_temperature;
+layout (binding = 2) uniform sampler3D t_density;
+
+layout (binding = 0, rgba16f) uniform image3D i_velocity_target;
+
+uniform float u_ambient_temperature;
+uniform float u_time_step;
+uniform float u_buoyancy;
+uniform float u_weight;
+
+void main() {
+	ivec3 pos = ivec3(gl_GlobalInvocationID);
+	vec4 vel = texelFetch(t_velocity, pos, 0);
+	float temp = texelFetch(t_temperature, pos, 0).x;
+	
+	vec4 d = texelFetch(t_density, pos, 0);
+	float dens = d.x + d.y + d.z + d.w;
+	vel += u_time_step * ((temp - u_ambient_temperature) * u_buoyancy - dens * u_weight) * vec4(0,1,0,0);
+
+	imageStore(i_velocity_target, pos, vel);
+}

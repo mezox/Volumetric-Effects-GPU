@@ -1,0 +1,28 @@
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (binding = 0, r16f) uniform image3D sphereTexture;
+
+uniform vec3 spherePosition;
+uniform float sphereRadius;
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	float volumeValue = 0.0;
+	
+	// Set values on boundary of volume
+	if	((position.x == 0 || position.x == gl_NumWorkGroups.x * gl_WorkGroupSize.x - 1) ||
+		(position.y == 0 || position.y == gl_NumWorkGroups.y * gl_WorkGroupSize.y - 1) ||
+		(position.z == 0 || position.z == gl_NumWorkGroups.z * gl_WorkGroupSize.z - 1))
+	{
+		volumeValue = 0.01;
+	}
+	
+	vec3 coord = vec3(position) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1);
+	
+	if (distance(spherePosition, coord) < sphereRadius)
+		volumeValue = 1;
+	
+	imageStore(sphereTexture, position, vec4(volumeValue, 0.0, 0.0, 0.0));
+}

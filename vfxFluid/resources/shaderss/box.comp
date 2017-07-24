@@ -1,0 +1,30 @@
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (binding = 0, r16f) uniform image3D boxImage;
+
+uniform vec3 boxPosition;
+uniform vec3 boxExtent;
+
+const float BOUNDARY = 0.1;
+
+void main() 
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	float outputValue = 0.0;
+
+	if (position.x == 0 || position.x == gl_NumWorkGroups.x * gl_WorkGroupSize.x - 1) outputValue = BOUNDARY;
+	if (position.y == 0 || position.y == gl_NumWorkGroups.y * gl_WorkGroupSize.y - 1) outputValue = BOUNDARY;
+	if (position.z == 0 || position.z == gl_NumWorkGroups.z * gl_WorkGroupSize.z - 1) outputValue = BOUNDARY;
+	vec3 coord = vec3(position) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1);
+
+	
+	if (abs(coord.x - boxPosition.x) < boxExtent.x &&
+		abs(coord.y - boxPosition.y) < boxExtent.y &&
+		abs(coord.z - boxPosition.z) < boxExtent.z)
+	{
+		outputValue.x = 1;
+	}
+	
+	imageStore(boxImage, position, vec4(outputValue, 0.0, 0.0, 0.0));
+}

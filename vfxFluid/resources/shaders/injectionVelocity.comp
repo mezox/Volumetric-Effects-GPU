@@ -1,0 +1,36 @@
+/*	Brief:			Velocity injection compute shader
+ *	Description:	Injects velocity into volume
+ */
+
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+// inputs
+layout (binding = 0) uniform sampler3D quantity;
+
+// outputs
+layout (binding = 0, rgba16f) uniform image3D outputImage;
+
+// uniforms
+uniform float deltaTime;
+uniform vec3 injectionPosition;
+uniform float sigma;
+uniform float intensity;
+
+void main()
+{
+	ivec3 position = ivec3(gl_GlobalInvocationID);
+	vec3 coord = vec3(position) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1);
+	
+	//vec3 diff = injectionPosition - coord;
+	float distanceSquare = dot(injectionPosition - coord, injectionPosition - coord) * gl_NumWorkGroups.y * gl_WorkGroupSize.y * gl_NumWorkGroups.y * gl_WorkGroupSize.y;
+	//float sigmaSquare = sigma * sigma;
+	float gaussian = exp( - distanceSquare / 2 * sigma * sigma) / sigma;
+
+	vec3 direction = normalize(coord - injectionPosition);
+	
+	vec4 quantitySample = texelFetch(quantity, position, 0);
+	vec4 outputValue = quantitySample + intensity * gaussian * deltaTime * vec4(direction, 0);
+	imageStore(outputImage, position, outputValue);
+}

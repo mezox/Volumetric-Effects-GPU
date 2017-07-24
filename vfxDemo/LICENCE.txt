@@ -1,0 +1,16 @@
+/*****************************************************************************\
+ * THIS SOFTWARE IS NOT COPYRIGHTED
+ *
+ * This source code is offered for use in the public domain.
+ * You may use, modify or distribute it freely.
+ *
+ * This source code is distributed in the hope that it will be useful but
+ * WITHOUT ANY WARRANTY.  ALL WARRANTIES, EXPRESS OR IMPLIED ARE HEREBY
+ * DISCLAIMED.  This includes but is not limited to warranties of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * If you find the source code useful, authors will kindly welcome
+ * if you give them credit and keep their names with their source code,
+ * but do not feel to be forced to do so.
+ *
+\*****************************************************************************/

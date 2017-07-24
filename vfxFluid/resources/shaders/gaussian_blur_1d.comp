@@ -1,0 +1,34 @@
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (binding = 0) uniform sampler3D t_source;
+layout (binding = 0, r16f) uniform image3D i_target;
+
+uniform int u_pass_num;
+uniform float u_weights[5] = float[](0.05399096651318985, 0.24197072451914536, 0.3989422804014327, 0.24197072451914536, 0.05399096651318985);
+
+uniform ivec3 u_offset[15] = ivec3[](
+	ivec3(-2,0,0), ivec3(-1,0,0), ivec3(0,0,0), ivec3(1,0,0), ivec3(2,0,0),
+	ivec3(0,-2,0), ivec3(0,-1,0), ivec3(0,0,0), ivec3(0,1,0), ivec3(0,2,0),
+	ivec3(0,0,-2), ivec3(0,0,-1), ivec3(0,0,0), ivec3(0,0,1), ivec3(0,0,2)
+);
+
+ivec3 clamp_i (ivec3 i_in) {
+	ivec3 res;
+	res.x = clamp(i_in.x, 0, int(gl_NumWorkGroups.x * gl_WorkGroupSize.x) -1);
+	res.y = clamp(i_in.y, 0, int(gl_NumWorkGroups.y * gl_WorkGroupSize.y) -1);
+	res.z = clamp(i_in.z, 0, int(gl_NumWorkGroups.z * gl_WorkGroupSize.z) -1);
+	return res;
+}
+
+void main()
+{
+	ivec3 pos = ivec3(gl_GlobalInvocationID);
+
+	vec4 blur = vec4(0);
+	for (int i=0; i<5; i++) {
+		blur += texelFetch(t_source, clamp_i(pos + u_offset[u_pass_num*5 + i]), 0) * u_weights[i];
+	}
+
+	imageStore(i_target, pos, blur);
+}

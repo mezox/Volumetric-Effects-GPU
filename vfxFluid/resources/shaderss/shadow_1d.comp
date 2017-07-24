@@ -1,0 +1,52 @@
+#version 450
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (binding = 0) uniform sampler3D t_density;
+layout (binding = 1) uniform sampler3D t_obstacle;
+layout (binding = 0, r16f) uniform image3D i_shadow;
+
+uniform float u_step_size = 1.0/128;
+uniform int u_max_steps = 1000;
+uniform float u_density_factor = 10.0;
+uniform vec3 u_light_position = vec3(1.5,1.0,1.5);
+uniform float u_absorption = 100.0;
+uniform float u_jittering = 0.5;
+
+float rand_float(vec3 v_in)
+{
+    return fract(sin(dot(v_in ,vec3(12.9898, 78.233, 56.8346))) * 43758.5453);
+}
+
+void main() {
+	ivec3 pos = ivec3(gl_GlobalInvocationID);
+	
+	vec3 coord = vec3(pos / vec3(gl_NumWorkGroups * gl_WorkGroupSize));
+	
+	vec3 light_dir = normalize(u_light_position - coord);
+	float acc_light = 1.0;
+	vec3 light_tracing_coord = coord + mix(-u_jittering/2, u_jittering, rand_float(coord)) * light_dir * u_step_size;
+	
+	for (int j=0; j< u_max_steps; j++) {
+		light_tracing_coord += light_dir * u_step_size;
+		if (light_tracing_coord.x < 0 || light_tracing_coord.y < 0 || light_tracing_coord.z < 0 ) break;
+		if (light_tracing_coord.x > 1 || light_tracing_coord.y > 1 || light_tracing_coord.z > 1 ) break;
+		
+		float ob = texture(t_obstacle, light_tracing_coord).x;
+		if (ob >0.5) {
+			imageStore(i_shadow, pos, vec4(0));
+			return;
+		}
+		
+		vec4 d = texture(t_density, light_tracing_coord) * u_density_factor;
+		float ad = d.x + d.y + d.z + d.w;
+		
+		if (ad  > 0) {
+			acc_light *= exp( - ad * u_step_size * u_absorption);
+		}			//continue;
+
+		if (acc_light <= 0.01) break;
+	}
+	
+	imageStore(i_shadow, pos, vec4(acc_light));
+}
+
